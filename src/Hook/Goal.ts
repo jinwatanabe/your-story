@@ -18,27 +18,30 @@ export function useGetGoal() {
     const goalData = collection(db, "goals");
     const fetchGoals = async () => {
       const snapshot = await getDocs(goalData);
-      console.log(
-        snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as GoalJson))
+      const goals = snapshot.docs.map(
+        (doc) =>
+          new GoalJson(
+            doc.id,
+            doc.data().title,
+            doc.data().goalNum,
+            doc.data().doneNum,
+            doc.data().deadline,
+            [],
+            new Story(
+              doc.data().story.today,
+              doc.data().story.end,
+              doc.data().story.total
+            ),
+            doc.data().lastDate,
+            doc.data().mode
+          )
       );
-      setGoalsJson(
-        snapshot.docs.map(
-          (doc) =>
-            new GoalJson(
-              doc.id,
-              doc.data().title,
-              doc.data().goalNum,
-              doc.data().doneNum,
-              doc.data().deadline,
-              [],
-              new Story(
-                doc.data().story.today,
-                doc.data().story.end,
-                doc.data().story.total
-              )
-            )
-        )
-      );
+
+      // if (new Date() > goals[0].lastDate.toDate()) {
+      //   goals[0].lastDate = Timestamp.fromDate(new Date());
+      //   goals[0].story.today = await getTodayContent(goals[0].story.total);
+      // }
+      setGoalsJson(goals);
     };
 
     fetchGoals();
@@ -52,14 +55,15 @@ export function useGetGoal() {
         goals[0].doneNum,
         new Date(goals[0].deadline.seconds * 1000),
         goals[0].records,
-        goals[0].story
+        goals[0].story,
+        new Date(goals[0].lastDate.seconds * 1000),
+        goals[0].mode
       )
     : undefined;
 }
 
 export async function updateGoal(goal: Goal) {
   try {
-    console.log("Updating goal:", goal.id);
     const goalRef = doc(db, "goals", goal.id);
     await updateDoc(goalRef, {
       title: goal.title,
@@ -69,8 +73,13 @@ export async function updateGoal(goal: Goal) {
       records: goal.records.map((record) => ({
         description: record.description,
       })),
+      story: {
+        today: goal.story.today,
+        end: goal.story.end,
+        total: goal.story.total,
+      },
+      mode: goal.mode,
     });
-    console.log("Goal updated successfully");
   } catch (error) {
     console.error("Error updating goal:", error);
   }
@@ -84,6 +93,8 @@ class GoalJson {
     public doneNum: number,
     public deadline: Timestamp,
     public records: Record[],
-    public story: Story
+    public story: Story,
+    public lastDate: Timestamp,
+    public mode: string
   ) {}
 }

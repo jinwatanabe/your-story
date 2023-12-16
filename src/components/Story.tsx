@@ -2,7 +2,6 @@ import { useEffect } from "react";
 
 export const Story = () => {
   useEffect(() => {
-    console.log(import.meta.env.VITE_OPENAI_API_KEY);
     const body = JSON.stringify({
       model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: "Hello!" }],
@@ -17,7 +16,6 @@ export const Story = () => {
         body,
       });
       const data = await res.json();
-      console.log(data);
     };
 
     callApi();

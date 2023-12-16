@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 
 type Props = {
@@ -23,6 +24,7 @@ const GoalForm = ({
   goalNum,
   deadline,
 }: Props) => {
+  const [isLoading, setIsLoading] = useState(false);
   const {
     register,
     handleSubmit,
@@ -105,9 +107,12 @@ const GoalForm = ({
         ) : (
           <button
             className={
-              "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              isLoading
+                ? "bg-gray-500 text-white font-bold py-2 px-4 rounded disabled cursor-not-allowed"
+                : "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             }
             type="submit"
+            onClick={() => setIsLoading(true)}
           >
             登録
           </button>

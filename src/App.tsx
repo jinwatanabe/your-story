@@ -10,7 +10,7 @@ import RecordForm from "./components/RecordForm";
 import { updateGoal, useGetGoal } from "./Hook/Goal";
 import { Story } from "./domain/Story";
 import { Record } from "./domain/Record";
-import { set } from "firebase/database";
+import { getStartStory, getTodayContent } from "./Hook/Story";
 
 type ChartData = {
   name: string;
@@ -52,13 +52,28 @@ function App() {
         setIsProcessing(true);
       }
 
-      if (0.5 > goalData.getPase() && goalData.getPase() > 0) {
+      const modePase = goalData.getPase() / goalData.getStandardPase();
+      if (0.5 > modePase && modePase > 0) {
         setMode("Happy");
-      } else if (goalData.getPase() > 1.2) {
+      } else if (modePase > 1.2) {
         setMode("Bad");
       } else {
         setMode("Nutral");
       }
+
+      if (goalData.deadline < new Date()) {
+        setIsProcessing(false);
+      }
+
+      // if (goalData.lastDate < new Date()) {
+      //   const today = getTodayContent(
+      //     goalData.story.content,
+      //     goalData.story.end,
+      //     goalData.mode,
+      //     goalData.getPase(),
+      //     goalData.getRestDate()
+      //   );
+      // }
     }
   }, [goalData?.id]);
 
@@ -74,9 +89,27 @@ function App() {
     setIsOpen(false);
   };
 
+  const checkMode = (pase: number): string => {
+    if (0.3 > pase && pase > 0) {
+      return "Happy";
+    } else if (pase > 1) {
+      return "Bad";
+    } else {
+      return "Nutral";
+    }
+  };
+
   const onGoalSubmit = async (data: GoalFormValues) => {
-    console.log(data);
     if (!goal) return;
+
+    // 今日から期限までの日数を計算
+    const pase = Math.floor(
+      (new Date(data.date).getTime() - new Date().getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+
+    const content = await getStartStory(data.title, pase, 1);
+
     const newGoal = new Goal(
       goal?.id,
       data.title,
@@ -84,11 +117,9 @@ function App() {
       0,
       new Date(data.date),
       [],
-      new Story(
-        "今日は、" + data.title + "を始めました。",
-        "今日は、" + data.title + "を始めました。",
-        "今日は、" + data.title + "を始めました。"
-      )
+      new Story(content[0], content.slice(content.length - 1), content[0]),
+      new Date(),
+      checkMode(pase)
     );
 
     await updateGoal(newGoal);
@@ -126,7 +157,9 @@ function App() {
       goal!.doneNum + 1,
       goal!.deadline,
       [...goal!.records, new Record(data.description)],
-      goal!.story
+      goal!.story,
+      goal!.lastDate,
+      goal!.mode
     );
     await updateGoal(newGoal);
     setGoal(newGoal);
