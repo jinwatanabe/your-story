@@ -7,9 +7,10 @@ import GoalChart from "./components/GoalChart";
 import StorySection from "./components/StorySection";
 import GoalForm from "./components/GoalForm";
 import RecordForm from "./components/RecordForm";
-import { useGetGoal } from "./Hook/Goal";
+import { updateGoal, useGetGoal } from "./Hook/Goal";
 import { Story } from "./domain/Story";
 import { Record } from "./domain/Record";
+import { set } from "firebase/database";
 
 type ChartData = {
   name: string;
@@ -35,6 +36,7 @@ function App() {
   const [restDate, setRestDate] = useState<number>(0);
   const [pase, setPase] = useState<number>(0);
   const [goal, setGoal] = useState<Goal | null>(null);
+  const [mode, setMode] = useState<"Happy" | "Nutral" | "Bad">("Nutral");
   const goalData = useGetGoal();
 
   useEffect(() => {
@@ -48,6 +50,14 @@ function App() {
       setPase(goalData.getPase());
       if (goalData.deadline > new Date()) {
         setIsProcessing(true);
+      }
+
+      if (0.5 > goalData.getPase() && goalData.getPase() > 0) {
+        setMode("Happy");
+      } else if (goalData.getPase() > 1.2) {
+        setMode("Bad");
+      } else {
+        setMode("Nutral");
       }
     }
   }, [goalData?.id]);
@@ -64,9 +74,11 @@ function App() {
     setIsOpen(false);
   };
 
-  const onGoalSubmit = (data: GoalFormValues) => {
-    const goal = new Goal(
-      Math.random().toString(32).substring(2),
+  const onGoalSubmit = async (data: GoalFormValues) => {
+    console.log(data);
+    if (!goal) return;
+    const newGoal = new Goal(
+      goal?.id,
       data.title,
       data.goal,
       0,
@@ -78,12 +90,16 @@ function App() {
         "今日は、" + data.title + "を始めました。"
       )
     );
-    setGoal(goal);
+
+    await updateGoal(newGoal);
+    setGoal(newGoal);
     setChartData([
-      { name: "達成", sales: goal.doneNum },
-      { name: "残り", sales: goal.goalNum - goal.doneNum },
+      { name: "達成", sales: newGoal.doneNum },
+      { name: "残り", sales: newGoal.goalNum - newGoal.doneNum },
     ]);
     setIsProcessing(true);
+    setRestDate(newGoal.getRestDate());
+    setPase(newGoal.getPase());
     closeModal();
   };
 
@@ -102,7 +118,7 @@ function App() {
     setIsRecordModalOpen(false);
   };
 
-  const onRecordSubmit = (data: RecordFormValues) => {
+  const onRecordSubmit = async (data: RecordFormValues) => {
     const newGoal = new Goal(
       goal!.id,
       goal!.title,
@@ -112,6 +128,7 @@ function App() {
       [...goal!.records, new Record(data.description)],
       goal!.story
     );
+    await updateGoal(newGoal);
     setGoal(newGoal);
     setChartData([
       { name: "達成", sales: newGoal.doneNum },
@@ -149,7 +166,11 @@ function App() {
             記録する
           </button>
         </div>
-        <StorySection />
+        <StorySection
+          todayContent={goal?.story.today ?? ""}
+          endContent={goal?.story.end ?? ""}
+          mode={mode}
+        />
         <div className="text-center font-bold mt-5">
           <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
             過去の物語を読む

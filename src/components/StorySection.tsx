@@ -1,16 +1,31 @@
-const StorySection = () => (
-  <section>
-    <h2 className="text-center text-lgf font-bold mb-2">今日の物語</h2>
-    <div className="bg-red-200 w-full p-2">
-      主人公は、YouTubeで100本の動画を投稿するという大きな目標を掲げます。夢に満ち溢れ、情熱を胸に、カメラを手に初めての動画を撮影し始めます。最初は不安と緊張で声が震え、画面の前で何を話したらいいかわからない。しかし、彼は自分の興味を共有することに価値があると信じていました。そこで、彼は自分の好きな趣味や日常の出来事を語り始め、最初の動画をアップロードすることに成功します。
-    </div>
-    <h2 className="text-center text-lgf font-bold mb-2 mt-5">
-      現在のエンディング : Happy
-    </h2>
-    <div className="bg-red-200 w-full p-2">
-      数多くの挑戦と成長を経て、主人公はついに100本目の動画をアップロードします。この旅路で彼は多くのフォロワーを獲得し、コメントやフィードバックを通じて多くの人々と交流を深めました。彼の動画は多くの人々に影響を与え、彼自身も新しい自分を発見することができました。最後の動画では、感謝の気持ちとこれまでの旅路を振り返り、これからも続けていくことを誓います。カメラの前で微笑みながら、彼は「100本目の動画をアップロードできて、本当に幸せです。これからもよろしくお願いします」と語り、ハッピーエンドを迎えます。
-    </div>
-  </section>
-);
+type Props = {
+  todayContent: string;
+  endContent: string;
+  mode: "Happy" | "Nutral" | "Bad";
+};
+
+const StorySection = ({ todayContent, endContent, mode }: Props) => {
+  const modeColor = () => {
+    switch (mode) {
+      case "Happy":
+        return "text-orange-700";
+      case "Nutral":
+        return "";
+      case "Bad":
+        return "text-blue-700";
+    }
+  };
+
+  return (
+    <section>
+      <h2 className="text-center text-lgf font-bold mb-2">今日の物語</h2>
+      <div className="bg-red-200 w-full p-2">{todayContent}</div>
+      <h2 className="text-center text-lgf font-bold mb-2 mt-5">
+        現在のエンディング : <span className={modeColor()}>{mode}</span>
+      </h2>
+      <div className="bg-red-200 w-full p-2">{endContent}</div>
+    </section>
+  );
+};
 
 export default StorySection;

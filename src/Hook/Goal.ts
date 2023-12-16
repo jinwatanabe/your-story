@@ -1,4 +1,10 @@
-import { Timestamp, collection, getDocs } from "firebase/firestore";
+import {
+  Timestamp,
+  collection,
+  doc,
+  getDocs,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import { useEffect, useState } from "react";
 import { Goal } from "../domain/Goal";
@@ -49,6 +55,25 @@ export function useGetGoal() {
         goals[0].story
       )
     : undefined;
+}
+
+export async function updateGoal(goal: Goal) {
+  try {
+    console.log("Updating goal:", goal.id);
+    const goalRef = doc(db, "goals", goal.id);
+    await updateDoc(goalRef, {
+      title: goal.title,
+      goalNum: goal.goalNum,
+      doneNum: goal.doneNum,
+      deadline: goal.deadline,
+      records: goal.records.map((record) => ({
+        description: record.description,
+      })),
+    });
+    console.log("Goal updated successfully");
+  } catch (error) {
+    console.error("Error updating goal:", error);
+  }
 }
 
 class GoalJson {
