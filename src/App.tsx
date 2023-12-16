@@ -2,12 +2,14 @@ import "./App.css";
 import { Header } from "./components/Header";
 import { useEffect, useState } from "react";
 import Modal from "react-modal";
-import { useForm } from "react-hook-form";
-import { Goal, Record } from "./domain/Goal";
+import { Goal } from "./domain/Goal";
 import GoalChart from "./components/GoalChart";
 import StorySection from "./components/StorySection";
 import GoalForm from "./components/GoalForm";
 import RecordForm from "./components/RecordForm";
+import { useGetGoal } from "./Hook/Goal";
+import { Story } from "./domain/Story";
+import { Record } from "./domain/Record";
 
 type ChartData = {
   name: string;
@@ -29,17 +31,26 @@ Modal.setAppElement("#root");
 function App() {
   const [isOpen, setIsOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [goal, setGoal] = useState<Goal>();
   const [chartData, setChartData] = useState<ChartData[]>([]);
-  const [restDate, setRestDate] = useState<number>();
-  const [pase, setPase] = useState<number>();
-  // const restDate = goal ? goal.getRestDate() : undefined;
-  // const pase = goal ? goal.getPase() : undefined;
+  const [restDate, setRestDate] = useState<number>(0);
+  const [pase, setPase] = useState<number>(0);
+  const [goal, setGoal] = useState<Goal | null>(null);
+  const goalData = useGetGoal();
 
   useEffect(() => {
-    setRestDate(goal ? goal.getRestDate() : undefined);
-    setPase(goal ? goal.getPase() : undefined);
-  }, [goal]);
+    if (goalData) {
+      setGoal(goalData);
+      setChartData([
+        { name: "達成", sales: goalData.doneNum },
+        { name: "残り", sales: goalData.goalNum - goalData.doneNum },
+      ]);
+      setRestDate(goalData.getRestDate());
+      setPase(goalData.getPase());
+      if (goalData.deadline > new Date()) {
+        setIsProcessing(true);
+      }
+    }
+  }, [goalData?.id]);
 
   const handleClickSetting = () => {
     openModal();
@@ -59,11 +70,14 @@ function App() {
       data.title,
       data.goal,
       0,
-      false,
       new Date(data.date),
-      []
+      [],
+      new Story(
+        "今日は、" + data.title + "を始めました。",
+        "今日は、" + data.title + "を始めました。",
+        "今日は、" + data.title + "を始めました。"
+      )
     );
-    console.log(goal);
     setGoal(goal);
     setChartData([
       { name: "達成", sales: goal.doneNum },
@@ -80,12 +94,10 @@ function App() {
 
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
 
-  // 記録モーダルを開く
   const openRecordModal = () => {
     setIsRecordModalOpen(true);
   };
 
-  // 記録モーダルを閉じる
   const closeRecordModal = () => {
     setIsRecordModalOpen(false);
   };
@@ -96,9 +108,9 @@ function App() {
       goal!.title,
       goal!.goalNum,
       goal!.doneNum + 1,
-      goal!.isDone,
       goal!.deadline,
-      [...goal!.records, new Record(data.description)]
+      [...goal!.records, new Record(data.description)],
+      goal!.story
     );
     setGoal(newGoal);
     setChartData([
@@ -120,10 +132,10 @@ function App() {
           label={goal?.doneNum + "/" + goal?.goalNum}
         />
         <div className="text-center mb-10">
-          <div>残り{restDate ?? "??"}日</div>
+          <div>残り{restDate}日</div>
           <div className="mb-2">
             目標達成まで
-            <span className="font-bold text-orange-400">{pase ?? "??"}/日</span>
+            <span className="font-bold text-orange-400">{pase}/日</span>
             ペース
           </div>
           <button

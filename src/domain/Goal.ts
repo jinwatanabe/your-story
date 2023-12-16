@@ -1,27 +1,35 @@
+import firebase from "firebase/compat/app";
+import { Story } from "./Story";
+import { Record } from "./Record";
+import { Timestamp } from "firebase/firestore";
+
 export class Goal {
   constructor(
     public id: string,
     public title: string,
     public goalNum: number,
     public doneNum: number,
-    public isDone: boolean,
     public deadline: Date,
-    public records: Record[]
+    public records: Record[],
+    public story: Story
   ) {}
 
   getRestDate(): number {
+    // deadline が Timestamp の場合、Date に変換
+    const deadlineDate =
+      this.deadline instanceof Timestamp
+        ? this.deadline.toDate()
+        : this.deadline;
+
     return Math.ceil(
-      (this.deadline.getTime() - new Date().getTime()) / 86400000
+      (deadlineDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
     );
   }
 
   getPase(): number {
-    const pase = Math.ceil((this.goalNum - this.doneNum) / this.getRestDate());
-    console.log(pase);
-    return pase > 0 ? pase : 0;
+    const restDays = this.getRestDate();
+    const pase =
+      restDays > 0 ? Math.ceil((this.goalNum - this.doneNum) / restDays) : 0;
+    return pase;
   }
-}
-
-export class Record {
-  constructor(public description: string) {}
 }

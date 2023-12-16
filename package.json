@@ -12,6 +12,7 @@
   "dependencies": {
     "@heroicons/react": "^1.0.6",
     "@tremor/react": "^3.12.0",
+    "firebase": "^10.7.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.49.2",
