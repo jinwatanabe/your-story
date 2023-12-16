@@ -1,6 +1,6 @@
 import "./App.css";
 import { Header } from "./components/Header";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Modal from "react-modal";
 import { useForm } from "react-hook-form";
 import { Goal, Record } from "./domain/Goal";
@@ -31,6 +31,15 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [goal, setGoal] = useState<Goal>();
   const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [restDate, setRestDate] = useState<number>();
+  const [pase, setPase] = useState<number>();
+  // const restDate = goal ? goal.getRestDate() : undefined;
+  // const pase = goal ? goal.getPase() : undefined;
+
+  useEffect(() => {
+    setRestDate(goal ? goal.getRestDate() : undefined);
+    setPase(goal ? goal.getPase() : undefined);
+  }, [goal]);
 
   const handleClickSetting = () => {
     openModal();
@@ -111,8 +120,10 @@ function App() {
           label={goal?.doneNum + "/" + goal?.goalNum}
         />
         <div className="text-center mb-10">
+          <div>残り{restDate ?? "??"}日</div>
           <div className="mb-2">
-            目標達成まで<span className="font-bold text-orange-400">1/日</span>
+            目標達成まで
+            <span className="font-bold text-orange-400">{pase ?? "??"}/日</span>
             ペース
           </div>
           <button

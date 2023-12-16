@@ -10,17 +10,19 @@ type ChartData = {
   sales: number;
 };
 
-const GoalChart = ({ chartData, label }: Props) => (
-  <DonutChart
-    className="mt-6 mb-4"
-    data={chartData}
-    category="sales"
-    index="name"
-    colors={["red", "slate"]}
-    label={label}
-    showAnimation={true}
-    animationDuration={1000}
-  />
-);
+const GoalChart = ({ chartData, label }: Props) => {
+  return (
+    <DonutChart
+      className="mt-6 mb-4"
+      data={chartData}
+      category="sales"
+      index="name"
+      colors={["red", "slate"]}
+      label={label}
+      showAnimation={true}
+      animationDuration={1000}
+    />
+  );
+};
 
 export default GoalChart;
