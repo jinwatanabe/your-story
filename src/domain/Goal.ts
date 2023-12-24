@@ -12,7 +12,8 @@ export class Goal {
     public records: Record[],
     public story: Story,
     public lastDate: Date,
-    public mode: string
+    public mode: string,
+    public isProcessing: boolean
   ) {}
 
   getRestDate(): number {

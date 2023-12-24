@@ -33,14 +33,11 @@ export function useGetGoal() {
               doc.data().story.total
             ),
             doc.data().lastDate,
-            doc.data().mode
+            doc.data().mode,
+            doc.data().isProcessing
           )
       );
 
-      // if (new Date() > goals[0].lastDate.toDate()) {
-      //   goals[0].lastDate = Timestamp.fromDate(new Date());
-      //   goals[0].story.today = await getTodayContent(goals[0].story.total);
-      // }
       setGoalsJson(goals);
     };
 
@@ -57,7 +54,8 @@ export function useGetGoal() {
         goals[0].records,
         goals[0].story,
         new Date(goals[0].lastDate.seconds * 1000),
-        goals[0].mode
+        goals[0].mode,
+        goals[0].isProcessing
       )
     : undefined;
 }
@@ -78,7 +76,9 @@ export async function updateGoal(goal: Goal) {
         end: goal.story.end,
         total: goal.story.total,
       },
+      lastDate: goal.lastDate,
       mode: goal.mode,
+      isProcessing: goal.isProcessing,
     });
   } catch (error) {
     console.error("Error updating goal:", error);
@@ -95,6 +95,7 @@ class GoalJson {
     public records: Record[],
     public story: Story,
     public lastDate: Timestamp,
-    public mode: string
+    public mode: string,
+    public isProcessing: boolean
   ) {}
 }

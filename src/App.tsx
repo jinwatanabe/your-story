@@ -11,6 +11,10 @@ import { updateGoal, useGetGoal } from "./Hook/Goal";
 import { Story } from "./domain/Story";
 import { Record } from "./domain/Record";
 import { getStartStory, getTodayContent } from "./Hook/Story";
+import { StoryAll } from "./components/StoryAll";
+import { User } from "./domain/User";
+import { UserSetting } from "./components/UserSetting";
+import { getUser } from "./Hook/User";
 
 type ChartData = {
   name: string;
@@ -38,8 +42,26 @@ function App() {
   const [goal, setGoal] = useState<Goal | null>(null);
   const [mode, setMode] = useState<"Happy" | "Nutral" | "Bad">("Nutral");
   const goalData = useGetGoal();
+  const [isStoryAllOpen, setIsStoryAllOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
+    if (isStoryAllOpen) {
+      // モーダルが開いたときにbodyのスクロールを無効にする
+      document.body.style.overflow = "hidden";
+    } else {
+      // モーダルが閉じたときにbodyのスクロールを再度有効にする
+      document.body.style.overflow = "";
+    }
+
+    const fetchUser = async () => {
+      const user = await getUser();
+      user ? setUser(user) : setUser(null);
+      setUser(user);
+    };
+
+    fetchUser();
+
     if (goalData) {
       setGoal(goalData);
       setChartData([
@@ -48,9 +70,7 @@ function App() {
       ]);
       setRestDate(goalData.getRestDate());
       setPase(goalData.getPase());
-      if (goalData.deadline > new Date()) {
-        setIsProcessing(true);
-      }
+      setIsProcessing(goalData.isProcessing);
 
       const modePase = goalData.getPase() / goalData.getStandardPase();
       if (0.5 > modePase && modePase > 0) {
@@ -61,21 +81,57 @@ function App() {
         setMode("Nutral");
       }
 
-      if (goalData.deadline < new Date()) {
-        setIsProcessing(false);
-      }
+      const fetchNewStory = async () => {
+        const todayContent = await getTodayContent(
+          goalData.story.total,
+          goalData.story.end,
+          goalData.mode,
+          goalData.getPase(),
+          goalData.getRestDate(),
+          user
+        );
 
-      // if (goalData.lastDate < new Date()) {
-      //   const today = getTodayContent(
-      //     goalData.story.content,
-      //     goalData.story.end,
-      //     goalData.mode,
-      //     goalData.getPase(),
-      //     goalData.getRestDate()
-      //   );
-      // }
+        const newStory = new Story(
+          todayContent,
+          goalData.story.end,
+          goalData.story.total + todayContent
+        );
+
+        return newStory;
+      };
+
+      if (goalData.lastDate < new Date() && goalData.isProcessing) {
+        // 経過している日数を計算
+        const pase = Math.floor(
+          (new Date().getTime() - goalData.lastDate.getTime()) /
+            (1000 * 60 * 60 * 24)
+        );
+
+        // 日数分fetch
+        for (let i = 0; i < pase; i++) {
+          fetchNewStory().then((newStory) => {
+            const newGoal = new Goal(
+              goalData.id,
+              goalData.title,
+              goalData.goalNum,
+              goalData.doneNum,
+              goalData.deadline,
+              goalData.records,
+              newStory,
+              new Date(),
+              goalData.mode,
+              new Date() < goalData.deadline ? true : false
+            );
+            updateGoal(newGoal);
+            setGoal(newGoal);
+          });
+        }
+      }
     }
-  }, [goalData?.id]);
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [goalData?.id, isStoryAllOpen]);
 
   const handleClickSetting = () => {
     openModal();
@@ -108,7 +164,7 @@ function App() {
         (1000 * 60 * 60 * 24)
     );
 
-    const content = await getStartStory(data.title, pase, 1);
+    const content = await getStartStory(data.title, 0.5, pase, user);
 
     const newGoal = new Goal(
       goal?.id,
@@ -119,7 +175,8 @@ function App() {
       [],
       new Story(content[0], content.slice(content.length - 1), content[0]),
       new Date(),
-      checkMode(pase)
+      checkMode(pase),
+      true
     );
 
     await updateGoal(newGoal);
@@ -136,6 +193,20 @@ function App() {
 
   const onCancelGoal = () => {
     setIsProcessing(false);
+    updateGoal(
+      new Goal(
+        goal!.id,
+        goal!.title,
+        goal!.goalNum,
+        goal!.doneNum,
+        goal!.deadline,
+        goal!.records,
+        goal!.story,
+        goal!.lastDate,
+        goal!.mode,
+        false
+      )
+    );
     closeModal();
   };
 
@@ -159,7 +230,8 @@ function App() {
       [...goal!.records, new Record(data.description)],
       goal!.story,
       goal!.lastDate,
-      goal!.mode
+      goal!.mode,
+      goal!.isProcessing
     );
     await updateGoal(newGoal);
     setGoal(newGoal);
@@ -170,9 +242,38 @@ function App() {
     setIsRecordModalOpen(false);
   };
 
+  const openStoryAllModal = () => {
+    setIsStoryAllOpen(true);
+  };
+
+  const closeStoryAllModal = () => {
+    setIsStoryAllOpen(false);
+  };
+
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+
+  const openUserModal = () => {
+    setIsUserModalOpen(true);
+  };
+
+  const closeModalUser = () => {
+    setIsUserModalOpen(false);
+  };
+
+  const handleClickUser = () => {
+    openUserModal();
+  };
+
+  const handleSetUser = (user: User) => {
+    setUser(user);
+  };
+
   return (
     <>
-      <Header onClickSetting={() => handleClickSetting()} />
+      <Header
+        onClickSetting={() => handleClickSetting()}
+        onClickUser={() => handleClickUser()}
+      />
       <div className="p-10">
         <h2 className="text-center font-bold text-2xl">
           {goal?.title ?? "新しい挑戦を始める"}
@@ -205,7 +306,10 @@ function App() {
           mode={mode}
         />
         <div className="text-center font-bold mt-5">
-          <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+          <button
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            onClick={() => openStoryAllModal()}
+          >
             過去の物語を読む
           </button>
         </div>
@@ -232,6 +336,28 @@ function App() {
         overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center px-4"
       >
         <RecordForm onSubmit={onRecordSubmit} closeModal={closeRecordModal} />
+      </Modal>
+      <Modal
+        isOpen={isStoryAllOpen}
+        onRequestClose={closeStoryAllModal}
+        className="p-4 bg-white rounded-lg overflow-y-scroll h-5/6"
+        overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center px-4"
+      >
+        <StoryAll
+          story={goal ? goal?.story.total : ""}
+          closeModal={() => closeStoryAllModal()}
+        />
+      </Modal>
+      <Modal
+        isOpen={isUserModalOpen}
+        onRequestClose={closeModalUser}
+        className="p-4 bg-white rounded-lg"
+        overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center px-4"
+      >
+        <UserSetting
+          onCloseModal={closeModalUser}
+          handleSetUser={handleSetUser}
+        />
       </Modal>
     </>
   );
